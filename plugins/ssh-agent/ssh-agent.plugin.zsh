@@ -48,6 +48,20 @@ function _plugin__start_agent()
   /usr/bin/ssh-add $HOME/.ssh/${^identities}
 }
 
+function _plugin__find_valid_agent()
+{
+  for i in $(find /tmp -nowarn -name "agent*"); do
+    SSH_AUTH_SOCK=$i ssh-add -ls
+    if (( $? == 0 )); then 
+      mkdir -p /tmp/ssh-$USER/
+      chmod 700 /tmp/ssh-$USER/
+      rm /tmp/ssh-$USER/auth.sock
+      ln -s $i /tmp/ssh-$USER/auth.sock
+      export SSH_AUTH_SOCK=/tmp/ssh-$USER/auth.sock
+    fi
+  done
+}
+
 # Get the filename to store/lookup the environment from
 if (( $+commands[scutil] )); then
   # It's OS X!
@@ -58,10 +72,8 @@ fi
 
 # test if agent-forwarding is enabled
 zstyle -b :omz:plugins:ssh-agent agent-forwarding _plugin__forwarding
-if [[ ${_plugin__forwarding} == "yes" && -n "$SSH_AUTH_SOCK" ]]; then
-  # Add a nifty symlink for screen/tmux if agent forwarding
-  [[ -L $SSH_AUTH_SOCK ]] || ln -sf "$SSH_AUTH_SOCK" /tmp/ssh-agent-$USER-screen
-
+if [[ ${_plugin__forwarding} == "yes" && -n $SSH_CONNECTION]]; then 
+    _plugin__find_valid_agent
 elif [ -f "${_plugin__ssh_env}" ]; then
   # Source SSH settings, if applicable
   . ${_plugin__ssh_env} > /dev/null
