@@ -62,7 +62,6 @@ function _plugin__find_valid_agent()
   done
 }
 
-
 # Get the filename to store/lookup the environment from
 if (( $+commands[scutil] )); then
   # It's OS X!
